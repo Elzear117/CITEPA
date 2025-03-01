@@ -1,0 +1,96 @@
+# données CITEPA - 2019 
+
+# Auteur : Lionel Elzear
+# Site : https://www.citepa.org/
+
+# Partie 1 : Emissions mensuelles de CO²e par secteur en 2019 (graphique en barre)
+# partie 2 : Emissions annuelle (2019) des secteurs (graphique en barre superposés - en pourcentage)
+
+# installation package
+install.packages("openxlsx")
+install.packages("dplyr")
+install.packages("ggplot2")
+install.packages("tidyr")
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(openxlsx)
+
+# Partie 1 : Emissions mensuelles de CO²e par secteur en 2019 (graphique en barre)
+################################################################################
+# rentrer les données CO²e excel du CITEPA
+# toutes les colonnes (avec les colonnes totales)
+CIT <- read.xlsx(" CHEMIN du fichier -> CITEPA/2019-citepa-GES.xlsx" ,sheet=6, rows=6:18, cols= 2:15, colNames=TRUE)
+
+names(CIT)[names(CIT)=="Emissions.de.CO2e.(MtCO2e/an).Périmètre.:.Métropole"] <- "Emiss"
+
+# vérifier les données
+str(CIT)
+
+# Convertir le format large en format long
+CIT_long <- CIT %>%
+  gather(key = "Mois", value = "Emission", -Emiss)
+
+# Convertir la colonne "Mois" en facteur et ordonner les mois
+CIT_long$Mois <- factor(CIT_long$Mois, levels = colnames(CIT)[-1])
+
+
+# Afficher les premières lignes du nouveau format de données
+head(CIT_long)
+
+
+# Créer le graphique à barres empilées
+ggplot(CIT_long, aes(x = Mois, y = Emission, fill = Emiss)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Émissions mensuelles de CO2e par secteur en 2019",
+       x = "Mois",
+       y = "Émissions de CO2e (MtCO2e/an)",
+       fill = "Secteur") +
+  theme_minimal()
+
+################################################################################
+
+# partie 2 : Emissions annuelle (2019) des secteurs (graphique en barre superposés - en pourcentage)
+################################################################################
+# rentrer les colonnes (sans les totaux)
+CITO <- read.xlsx("CHEMIN du fichier -> CITEPA/2019-citepa-GES.xlsx" ,sheet=6, rows=6:12, cols= 2:15, colNames=TRUE)
+
+names(CITO)[names(CITO)=="Emissions.de.CO2e.(MtCO2e/an).Périmètre.:.Métropole"] <- "Emiss"
+
+#vérifier les données
+str(CITO)
+
+# Convertir le format large en format long
+CITO_long <- CITO %>%
+  gather(key = "Mois", value = "Emission", -Emiss)
+
+# Convertir la colonne "Mois" en facteur et ordonner les mois
+CITO_long$Mois <- factor(CITO_long$Mois, levels = colnames(CITO)[-1])
+
+# Afficher les premières lignes du nouveau format de données
+head(CITO_long)
+
+# Calculer les pourcentages
+CITO$Pourcentage <- (CITO$Année.2019 / sum(CITO$Année.2019)) * 100
+
+# Créer un graphique en secteurs (pie chart) avec pourcentages
+ggplot(CITO, aes(x = "", y = Pourcentage, fill = Emiss, label = sprintf("%.1f%%", Pourcentage))) +
+  geom_bar(stat = "identity", width = 1) +
+  geom_text(position = position_stack(vjust = 0.5)) +
+  labs(title = "Répartition des émissions par secteur en 2019",
+       subtitle = "En pourcentage",
+       x = NULL, y = NULL) +
+  scale_fill_brewer(palette = "Set3") +  # Vous pouvez changer la palette selon vos préférences
+  theme_minimal() +
+  theme(axis.text = element_blank(),
+        axis.title = element_blank())+
+  labs(caption = "Source : Citepa/Baromètre format Secten - juin 2023")
+###############################################################################
+
+# Source :
+# 1-utiliser excel avec R
+# https://www.delftstack.com/fr/howto/r/read-xlsx-in-r/#utilisez-la-biblioth%c3%a8que-openxlsx-pour-lire-le-fichier-xlsx-dans-r
+# http://www.sthda.com/french/wiki/xlsx-le-meilleur-package-pour-connecter-excel-avec-le-logiciel-r
+# 2-renommer la colonne
+# https://fr.code-paper.com/r/examples-change-column-names-in-r
+
